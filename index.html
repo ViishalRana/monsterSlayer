@@ -1,0 +1,206 @@
+<html>
+    <head>
+        <title>Monster Slayer</title>
+        <link rel="stylesheet" href="./css/app.css">
+    </head>   
+    <body>
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <div id="app">
+                <div class="titles">
+                    <div class="player">
+                        <h1>You</h1>
+                        <div class="healthbar">
+                            <div class="healthbar" id="player_health" style="background-color: greenyellow;margin: 0px;" :style="{'width':ph+'%'}">
+                                    {{ ph }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="player">
+                        <h1 style="color: red;">Monster</h1>
+                        <div class="healthbar">
+                            <div class="healthbar" id="monster_health" style="background-color: greenyellow;margin: 0px;" :style="{'width':mh+'%'}">
+                                    {{ mh }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="controls" v-if="isGameRunning==false">
+                    <button @click="startNewGame">Start New Game</button>
+                </div>
+                <div class="controls" v-if="isGameRunning==true">
+                    <button id="attack" @click="pl_attack">Attack</button>
+                    <button v-if="counter>=3" id="special_attack" @click="pl_sattack">Special Attack</button>
+                    <button id="heal" @click="pl_heal">Heal</button>
+                    <button id="give_up" @click="pl_giveup">Give Up</button>                    
+                </div>
+                <div v-if="log.length>0">
+                    <ul class="log">
+                        <li v-for="entry in log" :class="{'system-turn': (entry.isNewGame && entry.isPlayer),'player-turn':entry.isPlayer && !entry.isNewGame,'monster-turn':!entry.isPlayer}">
+                            {{ entry.text }}
+                        </li>
+                    </ul>
+                </div>
+        </div>
+        <script>
+            new Vue({
+                el:"#app",
+                data:{
+                    ph:100,
+                    mh:100,
+                    isGameRunning:false,
+                    counter:0,
+                    log:[]
+                },
+                methods:{
+                    pl_attack: function(){
+                        let damage=this.calculateDamage(3,12);
+                        this.mh-=damage;
+                        this.log.unshift({
+                            isPlayer:true,
+                            text:"Playe hits monster. Damage done-"+damage,
+                            isNewGame:false
+                        });
+                        if(this.mh<0)
+                            this.mh=0;
+                        if(this.checkWin())
+                        {
+                            this.isGameRunning=false;
+                            return;
+                        }
+
+                        this.monsterAttack();
+                        if(this.ph<0)
+                            this.ph=0;
+                    },
+                    pl_sattack: function(){
+                        this.counter=0;
+                        let damage=this.calculateDamage(10,30);
+                        this.mh-=damage;
+                        this.log.unshift({
+                            isPlayer:true,
+                            text:"Player hits monster using Special Attack. Damage done-"+damage,
+                            isNewGame:false
+                        });
+                        if(this.mh<0)
+                            this.mh=0;
+                        if(this.checkWin())
+                        {
+                            this.isGameRunning=false;
+                            return;
+                        }
+
+                        this.monsterAttack();
+                        if(this.ph<0)
+                            this.ph=0;     
+                    },
+                    pl_heal: function(){
+                        if(this.ph+21<=100)
+                        {
+                            this.ph+=21;
+                            this.log.unshift({
+                                isPlayer:true,
+                                text:"Player heals. Healed Damage-"+21,
+                                isNewGame:false                                
+                            });
+                        }    
+                        else{
+                            this.log.unshift({
+                                isPlayer:true,
+                                text:"Player heals. Healed Damage-"+(100-this.ph),
+                                isNewGame:false                                
+                            });
+                            this.ph=100;
+                        }
+                            
+                        this.monsterAttack();
+                        if(this.ph<0)
+                            this.ph=0;  
+                    },
+                    pl_giveup: function(){
+                        this.ph=0;
+                        if(this.checkWin())
+                            this.isGameRunning=false;
+                        return;    
+                    },
+                    calculateDamage: function(min,max){
+                        return Math.max(Math.floor(Math.random()*max),min);
+                    },
+                    checkWin: function(){
+                        if(this.mh<=0)
+                        {
+                            this.log.unshift({
+                                isPlayer:true,
+                                text:"Thank god. You saved the day.!!! You defeated the monster.!",
+                                isNewGame:false
+                            });
+                            alert("You Win.!");
+                            return true;
+                        }
+                        if(this.ph<=0)
+                        {
+                            this.log.unshift({
+                                isPlayer:false,
+                                text:"Oh no.. Monster wins :( You fought with a good spirit and died a hero. :( World will mourn for you.",
+                                isNewGame:false
+                            });
+                            alert("You Lose.!");
+                            return true;
+                        }
+                        return false;
+                    },
+                    monsterAttack: function(){
+                        let c=Math.floor(Math.random()*10);
+                        if(c%4==0 && this.mh<100)
+                        {
+                            if(this.mh+21<=100)
+                            {
+                                this.mh+=21;
+                                this.log.unshift({
+                                    isPlayer:false,
+                                    text:"Monster heals. Damage healed-21",
+                                    isNewGame:false
+                                });
+                            }
+                            else
+                            {
+                                this.log.unshift({
+                                    isPlayer:false,
+                                    text:"Monster heals. Damage healed-"+(100-this.mh),
+                                    isNewGame:false
+                                });
+                                this.mh=100;
+                            }
+                        }
+                        else{
+                            this.counter++;
+                            let damage=this.calculateDamage(5,20)
+                            this.ph-=damage;
+                            this.log.unshift({
+                                isPlayer:false,
+                                text:"Monster hits player. Damage done-"+damage,
+                                isNewGame:false
+                            });
+                            if(this.checkWin())
+                            {
+                                this.isGameRunning=false;
+                                return;
+                            }
+                        }                        
+                    },
+                    startNewGame: function(){
+                        this.isGameRunning=true;
+                        this.ph=100;
+                        this.mh=100;
+                        this.counter=0;
+                        this.log=[];
+                        this.log.unshift({
+                            isPlayer:true,
+                            text:"New Game is started",
+                            isNewGame:true
+                        })
+                    }
+                }
+            });
+        </script>
+    </body>
+</html>
